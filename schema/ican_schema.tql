@@ -1,0 +1,978 @@
+# ICAN Data Center Schema
+# TypeDB Schema Definition Language (TypeQL)
+# Version: 1.0
+# Generated: December 12, 2025
+
+define
+
+# ============================================================================
+# ATTRIBUTE TYPES
+# ============================================================================
+
+# Common Identifiers
+external_id sub attribute, value string;      # ID from source system
+source_system sub attribute, value string;    # Which system the data came from
+notion_id sub attribute, value string;        # Notion page/database ID
+sync_timestamp sub attribute, value datetime; # When last synced
+
+# Person Attributes
+name sub attribute, value string;
+english_name sub attribute, value string;
+first_name sub attribute, value string;
+last_name sub attribute, value string;
+email sub attribute, value string;
+phone sub attribute, value string;
+gender sub attribute, value string;
+age sub attribute, value long;
+photo_url sub attribute, value string;
+
+# Employee/Teacher Specific
+employee_number sub attribute, value string;
+position sub attribute, value string;
+department sub attribute, value string;
+hire_date sub attribute, value datetime;
+role_start_date sub attribute, value datetime;
+is_active sub attribute, value boolean;
+color_keyword sub attribute, value string;    # For scheduling display
+
+# Student Specific
+student_id sub attribute, value string;
+grade sub attribute, value string;
+school sub attribute, value string;
+student_type sub attribute, value string;     # Regular, trial, etc.
+weakness_level sub attribute, value long;     # 0-10 scale
+program_start_date sub attribute, value datetime;
+program_end_date sub attribute, value datetime;
+
+# Score Attributes
+reading_score sub attribute, value string;
+grammar_score sub attribute, value string;
+listening_score sub attribute, value string;
+writing_score sub attribute, value string;
+vocabulary_score sub attribute, value string;
+interview_score sub attribute, value string;
+level_test_total sub attribute, value string;
+wpm_score sub attribute, value long;          # Words per minute
+pronunciation_score sub attribute, value double;
+fluency_score sub attribute, value double;
+comprehension_score sub attribute, value double;
+insight_score sub attribute, value double;
+knowledge_level sub attribute, value double;
+
+# Schedule/Time Attributes
+date sub attribute, value datetime;
+start_time sub attribute, value string;
+end_time sub attribute, value string;
+day_of_week sub attribute, value string;
+slot_name sub attribute, value string;
+
+# Location Attributes
+room_name sub attribute, value string;
+room_capacity sub attribute, value long;
+address sub attribute, value string;
+
+# Attendance Attributes
+attendance_status sub attribute, value string;  # present, late, absent
+minutes_late sub attribute, value long;
+late_reason sub attribute, value string;
+absent_reason sub attribute, value string;
+has_undertime sub attribute, value boolean;
+undertime_minutes sub attribute, value long;
+undertime_reason sub attribute, value string;
+
+# Assessment Attributes
+assessment_type sub attribute, value string;    # demo, interview, report
+assessment_score sub attribute, value string;
+assessment_result sub attribute, value string;  # pass, fail, needs improvement
+criteria_json sub attribute, value string;      # JSON blob for detailed criteria
+feedback sub attribute, value string;
+ai_feedback sub attribute, value string;
+met_count sub attribute, value long;
+needs_improvement_count sub attribute, value long;
+fail_count sub attribute, value long;
+
+# Coaching/HR Attributes
+coaching_type sub attribute, value string;      # verbal, written, final
+offense_code sub attribute, value string;
+offense_name sub attribute, value string;
+offense_severity sub attribute, value string;   # minor, moderate, severe
+issue_description sub attribute, value string;
+expected_improvement sub attribute, value string;
+improvement_timeline sub attribute, value string;
+follow_up_date sub attribute, value datetime;
+employee_acknowledged sub attribute, value boolean;
+employee_refused_sign sub attribute, value boolean;
+
+# Content Attributes
+title sub attribute, value string;
+description sub attribute, value string;
+category sub attribute, value string;
+notes sub attribute, value string;
+comments sub attribute, value string;
+app_link sub attribute, value string;
+image_url sub attribute, value string;
+student_levels sub attribute, value string;     # Target student levels
+rating sub attribute, value double;
+
+# Workflow Attributes (n8n)
+workflow_name sub attribute, value string;
+workflow_active sub attribute, value boolean;
+execution_status sub attribute, value string;
+execution_data sub attribute, value string;     # JSON blob
+
+# Timestamps
+created_at sub attribute, value datetime;
+updated_at sub attribute, value datetime;
+
+
+# ============================================================================
+# ENTITY TYPES
+# ============================================================================
+
+# --- Core People Entities ---
+
+person sub entity,
+    abstract,
+    owns external_id @key,
+    owns source_system,
+    owns notion_id,
+    owns name,
+    owns email,
+    owns phone,
+    owns gender,
+    owns photo_url,
+    owns is_active,
+    owns created_at,
+    owns updated_at,
+    owns sync_timestamp;
+
+teacher sub person,
+    owns employee_number,
+    owns first_name,
+    owns last_name,
+    owns english_name,
+    owns position,
+    owns department,
+    owns hire_date,
+    owns role_start_date,
+    owns color_keyword,
+    plays employment:employee,
+    plays supervision:supervisee,
+    plays supervision:supervisor,
+    plays teaching:instructor,
+    plays attendance-record:attendee,
+    plays coaching-session:coachee,
+    plays coaching-session:coach,
+    plays assessment-event:assessor,
+    plays app-contribution:contributor,
+    plays app-review:reviewer;
+
+student sub person,
+    owns student_id,
+    owns first_name,
+    owns last_name,
+    owns english_name,
+    owns age,
+    owns grade,
+    owns school,
+    owns student_type,
+    owns weakness_level,
+    owns program_start_date,
+    owns program_end_date,
+    owns reading_score,
+    owns grammar_score,
+    owns listening_score,
+    owns writing_score,
+    owns vocabulary_score,
+    owns interview_score,
+    owns level_test_total,
+    owns wpm_score,
+    plays enrollment:enrollee,
+    plays teaching:learner,
+    plays attendance-record:attendee,
+    plays assessment-event:subject,
+    plays student-note:about-student;
+
+
+# --- Organization Entities ---
+
+organization sub entity,
+    owns external_id @key,
+    owns name,
+    owns address,
+    owns phone,
+    owns email,
+    owns description,
+    owns created_at,
+    plays employment:employer;
+
+department sub entity,
+    owns external_id @key,
+    owns name,
+    owns description,
+    plays department-membership:dept;
+
+
+# --- Schedule Entities ---
+
+time-slot sub entity,
+    owns external_id @key,
+    owns slot_name,
+    owns start_time,
+    owns end_time,
+    owns day_of_week,
+    plays class-session:scheduled-time;
+
+room sub entity,
+    owns external_id @key,
+    owns room_name,
+    owns room_capacity,
+    owns description,
+    owns is_active,
+    plays class-session:location;
+
+class-assignment sub entity,
+    owns external_id @key,
+    owns source_system,
+    owns date,
+    owns notes,
+    owns is_active,
+    owns created_at,
+    owns updated_at,
+    plays class-session:session,
+    plays teaching:class;
+
+holiday sub entity,
+    owns external_id @key,
+    owns name,
+    owns date,
+    owns description;
+
+
+# --- Attendance Entities ---
+
+attendance sub entity,
+    owns external_id @key,
+    owns source_system,
+    owns date,
+    owns attendance_status,
+    owns start_time,
+    owns end_time,
+    owns minutes_late,
+    owns late_reason,
+    owns absent_reason,
+    owns has_undertime,
+    owns undertime_minutes,
+    owns undertime_reason,
+    owns created_at,
+    plays attendance-record:record;
+
+substitute-assignment sub entity,
+    owns external_id @key,
+    owns slot_name,
+    owns notes,
+    plays substitution:assignment;
+
+
+# --- Assessment Entities ---
+
+assessment sub entity,
+    abstract,
+    owns external_id @key,
+    owns source_system,
+    owns date,
+    owns assessment_type,
+    owns assessment_score,
+    owns assessment_result,
+    owns feedback,
+    owns ai_feedback,
+    owns created_at,
+    owns updated_at,
+    plays assessment-event:evaluation;
+
+demo-assessment sub assessment,
+    owns title,               # Topic of demo
+    owns student_levels,      # Level targeted
+    owns criteria_json,
+    owns met_count,
+    owns needs_improvement_count,
+    owns fail_count;
+
+interview-assessment sub assessment,
+    owns grade,
+    owns age,
+    owns pronunciation_score,
+    owns fluency_score,
+    owns comprehension_score,
+    owns insight_score,
+    owns vocabulary_score,
+    owns knowledge_level;
+
+student-report sub assessment,
+    owns grade,
+    owns category,            # Subject
+    owns attendance_status,   # Attendance rating
+    owns notes;               # Homework, participation, behavior ratings in notes
+
+
+# --- Coaching/HR Entities ---
+
+coaching-category sub entity,
+    owns external_id @key,
+    owns name,
+    owns description,
+    owns is_active,
+    plays offense-classification:category;
+
+offense-type sub entity,
+    owns external_id @key,
+    owns offense_code,
+    owns offense_name,
+    owns description,
+    owns offense_severity,
+    owns is_active,
+    plays offense-classification:offense,
+    plays coaching-session:offense-committed;
+
+coaching-record sub entity,
+    owns external_id @key,
+    owns source_system,
+    owns coaching_type,
+    owns date,
+    owns start_time,
+    owns issue_description,
+    owns expected_improvement,
+    owns improvement_timeline,
+    owns follow_up_date,
+    owns feedback,            # Support offered, consequences
+    owns comments,            # Employee comments
+    owns employee_acknowledged,
+    owns employee_refused_sign,
+    owns created_at,
+    owns updated_at,
+    plays coaching-session:session;
+
+
+# --- App Marketplace Entities ---
+
+educational-app sub entity,
+    owns external_id @key,
+    owns title,
+    owns description,
+    owns category,
+    owns student_levels,
+    owns app_link,
+    owns image_url,
+    owns rating,
+    owns created_at,
+    owns updated_at,
+    plays app-contribution:app,
+    plays app-review:app;
+
+app-comment sub entity,
+    owns external_id @key,
+    owns comments,
+    owns created_at,
+    plays app-review:comment;
+
+
+# --- Workflow Entities (n8n) ---
+
+workflow sub entity,
+    owns external_id @key,
+    owns workflow_name,
+    owns description,
+    owns workflow_active,
+    owns created_at,
+    owns updated_at,
+    plays workflow-execution:workflow-def;
+
+workflow-run sub entity,
+    owns external_id @key,
+    owns execution_status,
+    owns execution_data,
+    owns created_at,
+    plays workflow-execution:execution;
+
+
+# --- Notion Sync Entities ---
+
+notion-database sub entity,
+    owns external_id @key,
+    owns notion_id,
+    owns name,
+    owns description,
+    owns sync_timestamp;
+
+notion-page sub entity,
+    owns external_id @key,
+    owns notion_id,
+    owns title,
+    owns sync_timestamp,
+    plays notion-sync:page;
+
+
+# ============================================================================
+# RELATION TYPES
+# ============================================================================
+
+# --- Employment & Organization ---
+
+employment sub relation,
+    relates employer,
+    relates employee;
+
+supervision sub relation,
+    relates supervisor,
+    relates supervisee;
+
+department-membership sub relation,
+    owns date,                # When joined department
+    relates dept,
+    relates member;
+
+teacher plays department-membership:member;
+
+
+# --- Teaching & Learning ---
+
+teaching sub relation,
+    owns date,
+    relates instructor,
+    relates learner,
+    relates class;
+
+enrollment sub relation,
+    owns program_start_date,
+    owns program_end_date,
+    owns is_active,
+    relates enrollee,
+    relates program;
+
+organization plays enrollment:program;
+
+class-session sub relation,
+    owns date,
+    relates session,
+    relates scheduled-time,
+    relates location;
+
+
+# --- Attendance ---
+
+attendance-record sub relation,
+    relates attendee,
+    relates record;
+
+substitution sub relation,
+    owns date,
+    relates original-teacher,
+    relates substitute-teacher,
+    relates assignment;
+
+teacher plays substitution:original-teacher;
+teacher plays substitution:substitute-teacher;
+
+
+# --- Assessments ---
+
+assessment-event sub relation,
+    owns date,
+    relates assessor,
+    relates subject,
+    relates evaluation;
+
+
+# --- Coaching/HR ---
+
+coaching-session sub relation,
+    owns date,
+    relates coach,
+    relates coachee,
+    relates session,
+    relates offense-committed;
+
+offense-classification sub relation,
+    relates category,
+    relates offense;
+
+
+# --- App Marketplace ---
+
+app-contribution sub relation,
+    owns created_at,
+    relates contributor,
+    relates app;
+
+app-review sub relation,
+    owns rating,
+    owns created_at,
+    relates reviewer,
+    relates app,
+    relates comment;
+
+
+# --- Workflows ---
+
+workflow-execution sub relation,
+    owns created_at,
+    relates workflow-def,
+    relates execution;
+
+
+# --- Notion Sync ---
+
+notion-sync sub relation,
+    owns sync_timestamp,
+    relates page,
+    relates local-entity;
+
+person plays notion-sync:local-entity;
+class-assignment plays notion-sync:local-entity;
+
+
+# --- Student Notes ---
+
+student-note sub relation,
+    owns notes,
+    owns created_at,
+    relates about-student,
+    relates author;
+
+teacher plays student-note:author;
+
+
+# ============================================================================
+# RULES (Inference)
+# ============================================================================
+
+# Rule: If a teacher has coached another teacher, they have a coaching relationship
+rule coaching-relationship:
+    when {
+        $coach isa teacher;
+        $coachee isa teacher;
+        $record isa coaching-record;
+        (coach: $coach, coachee: $coachee, session: $record) isa coaching-session;
+    } then {
+        (supervisor: $coach, supervisee: $coachee) isa supervision;
+    };
+
+# Rule: Active students are those with current enrollment
+rule active-student:
+    when {
+        $student isa student;
+        $org isa organization;
+        (enrollee: $student, program: $org) isa enrollment, has is_active true;
+    } then {
+        $student has is_active true;
+    };
+
+# Rule: Teachers who substitute form a collaboration relationship
+rule substitute-collaboration:
+    when {
+        $t1 isa teacher;
+        $t2 isa teacher;
+        $assignment isa substitute-assignment;
+        (original-teacher: $t1, substitute-teacher: $t2, assignment: $assignment) isa substitution;
+    } then {
+        (instructor: $t1, instructor: $t2) isa teaching;
+    };
+
+
+# ============================================================================
+# SKILLS TAXONOMY (Ontology Extension)
+# ============================================================================
+
+# --- Skill Attributes ---
+skill_code sub attribute, value string;
+skill_name sub attribute, value string;
+skill_level sub attribute, value long;          # 1-10 mastery scale
+proficiency_level sub attribute, value string;  # beginner, intermediate, advanced, expert
+mastery_percentage sub attribute, value double;
+target_age_min sub attribute, value long;
+target_age_max sub attribute, value long;
+lexile_level sub attribute, value string;       # Reading level indicator
+cefr_level sub attribute, value string;         # A1, A2, B1, B2, C1, C2
+estimated_hours sub attribute, value long;      # Hours to master
+sort_order sub attribute, value long;
+is_core_skill sub attribute, value boolean;
+risk_level sub attribute, value string;         # low, medium, high, critical
+
+# --- Progress & Achievement Attributes ---
+progress_percentage sub attribute, value double;
+streak_days sub attribute, value long;
+total_practice_hours sub attribute, value double;
+last_practiced sub attribute, value datetime;
+achievement_date sub attribute, value datetime;
+badge_name sub attribute, value string;
+milestone_name sub attribute, value string;
+trend_direction sub attribute, value string;    # improving, stable, declining
+effectiveness_score sub attribute, value double;
+
+# --- Skill Domain Entity ---
+skill-domain sub entity,
+    owns external_id @key,
+    owns name,
+    owns description,
+    owns color_keyword,
+    owns sort_order,
+    owns created_at,
+    plays domain-hierarchy:parent-domain,
+    plays domain-hierarchy:child-domain,
+    plays skill-classification:domain;
+
+# --- Skill Category Entity ---
+skill-category sub entity,
+    owns external_id @key,
+    owns name,
+    owns description,
+    owns sort_order,
+    owns is_active,
+    owns created_at,
+    plays skill-classification:category,
+    plays category-hierarchy:parent-category,
+    plays category-hierarchy:child-category;
+
+# --- Core Skill Entity ---
+skill sub entity,
+    owns external_id @key,
+    owns skill_code,
+    owns skill_name,
+    owns description,
+    owns proficiency_level,
+    owns target_age_min,
+    owns target_age_max,
+    owns lexile_level,
+    owns cefr_level,
+    owns estimated_hours,
+    owns sort_order,
+    owns is_core_skill,
+    owns is_active,
+    owns created_at,
+    owns updated_at,
+    plays skill-classification:skill,
+    plays skill-prerequisite:required-skill,
+    plays skill-prerequisite:dependent-skill,
+    plays skill-mastery:mastered-skill,
+    plays skill-progress:target-skill,
+    plays skill-development:developed-skill,
+    plays content-skill-link:linked-skill,
+    plays recommendation:recommended-skill,
+    plays learning-gap:gap-skill,
+    plays strength-area:strong-skill;
+
+# --- Competency Level Entity ---
+competency-level sub entity,
+    owns external_id @key,
+    owns name,
+    owns description,
+    owns skill_level,
+    owns proficiency_level,
+    owns mastery_percentage,
+    owns sort_order,
+    plays skill-mastery:at-level;
+
+# --- Progress Snapshot Entity ---
+progress-snapshot sub entity,
+    owns external_id @key,
+    owns date,
+    owns mastery_percentage,
+    owns attendance_status,     # Rate as percentage
+    owns assessment_score,      # Average score
+    owns trend_direction,
+    owns notes,
+    owns created_at,
+    plays progress-tracking:snapshot;
+
+# --- Achievement/Badge Entity ---
+achievement sub entity,
+    owns external_id @key,
+    owns badge_name,
+    owns milestone_name,
+    owns description,
+    owns achievement_date,
+    owns image_url,
+    owns created_at,
+    plays achievement-earned:badge;
+
+# --- Learning Recommendation Entity ---
+learning-recommendation sub entity,
+    owns external_id @key,
+    owns title,
+    owns description,
+    owns category,              # skill, class, book, app
+    owns assessment_score,      # Priority score
+    owns created_at,
+    owns is_active,
+    plays recommendation:suggestion;
+
+# --- Intervention Entity ---
+intervention sub entity,
+    owns external_id @key,
+    owns title,
+    owns description,
+    owns risk_level,
+    owns issue_description,
+    owns expected_improvement,
+    owns follow_up_date,
+    owns is_active,
+    owns created_at,
+    owns updated_at,
+    plays intervention-assignment:action;
+
+
+# ============================================================================
+# SKILL RELATIONSHIPS
+# ============================================================================
+
+# --- Domain Hierarchy ---
+domain-hierarchy sub relation,
+    relates parent-domain,
+    relates child-domain;
+
+# --- Category Hierarchy ---
+category-hierarchy sub relation,
+    relates parent-category,
+    relates child-category;
+
+# --- Skill Classification (Skill belongs to Category in Domain) ---
+skill-classification sub relation,
+    relates domain,
+    relates category,
+    relates skill;
+
+# --- Skill Prerequisites (Skill A required before Skill B) ---
+skill-prerequisite sub relation,
+    owns description,
+    relates required-skill,
+    relates dependent-skill;
+
+# --- Skill Mastery (Student has mastered a skill at a level) ---
+skill-mastery sub relation,
+    owns mastery_percentage,
+    owns achievement_date,
+    owns assessment_score,
+    owns created_at,
+    relates learner,
+    relates mastered-skill,
+    relates at-level;
+
+student plays skill-mastery:learner;
+
+# --- Skill Progress (Student working on a skill) ---
+skill-progress sub relation,
+    owns progress_percentage,
+    owns last_practiced,
+    owns total_practice_hours,
+    owns streak_days,
+    owns trend_direction,
+    owns created_at,
+    owns updated_at,
+    relates learner,
+    relates target-skill;
+
+student plays skill-progress:learner;
+
+# --- Skill Development (Class/Content develops a skill) ---
+skill-development sub relation,
+    owns proficiency_level,     # Level taught
+    owns estimated_hours,
+    relates developer,          # Class, Book, App
+    relates developed-skill;
+
+class-assignment plays skill-development:developer;
+educational-app plays skill-development:developer;
+
+# --- Content-Skill Link (Books, Apps linked to skills) ---
+content-skill-link sub relation,
+    owns proficiency_level,
+    owns lexile_level,
+    relates content,
+    relates linked-skill;
+
+# Book entity for content linking
+book sub entity,
+    owns external_id @key,
+    owns title,
+    owns description,
+    owns category,
+    owns lexile_level,
+    owns reading_score,         # Difficulty
+    owns target_age_min,
+    owns target_age_max,
+    owns image_url,
+    owns is_active,
+    owns rating,
+    owns created_at,
+    plays content-skill-link:content,
+    plays skill-development:developer;
+
+# --- Teacher Specialization ---
+teacher-specialization sub relation,
+    owns proficiency_level,
+    owns effectiveness_score,
+    owns created_at,
+    relates specialist,
+    relates specialty-skill;
+
+teacher plays teacher-specialization:specialist;
+skill plays teacher-specialization:specialty-skill;
+
+# --- Learning Gap (Student struggles with skill) ---
+learning-gap sub relation,
+    owns risk_level,
+    owns assessment_score,      # How far below expected
+    owns notes,
+    owns created_at,
+    relates struggling-learner,
+    relates gap-skill;
+
+student plays learning-gap:struggling-learner;
+
+# --- Strength Area (Student excels at skill) ---
+strength-area sub relation,
+    owns assessment_score,      # How far above expected
+    owns notes,
+    owns created_at,
+    relates excelling-learner,
+    relates strong-skill;
+
+student plays strength-area:excelling-learner;
+
+# --- Progress Tracking (Student has progress snapshots) ---
+progress-tracking sub relation,
+    owns date,
+    relates tracked-student,
+    relates snapshot;
+
+student plays progress-tracking:tracked-student;
+
+# --- Achievement Earned ---
+achievement-earned sub relation,
+    owns achievement_date,
+    relates achiever,
+    relates badge;
+
+student plays achievement-earned:achiever;
+teacher plays achievement-earned:achiever;
+
+# --- Recommendation (Personalized learning suggestion) ---
+recommendation sub relation,
+    owns assessment_score,      # Priority/relevance score
+    owns created_at,
+    relates recipient,
+    relates suggestion,
+    relates recommended-skill;
+
+student plays recommendation:recipient;
+
+# --- Intervention Assignment ---
+intervention-assignment sub relation,
+    owns date,
+    owns created_at,
+    relates at-risk-student,
+    relates assigned-teacher,
+    relates action;
+
+student plays intervention-assignment:at-risk-student;
+teacher plays intervention-assignment:assigned-teacher;
+
+# --- Student Similarity (For peer grouping) ---
+student-similarity sub relation,
+    owns assessment_score,      # Similarity score
+    owns notes,
+    relates similar-student-a,
+    relates similar-student-b;
+
+student plays student-similarity:similar-student-a;
+student plays student-similarity:similar-student-b;
+
+# --- Teaching Effectiveness ---
+teaching-effectiveness sub relation,
+    owns effectiveness_score,
+    owns assessment_score,      # Student improvement
+    owns created_at,
+    relates effective-teacher,
+    relates benefiting-student,
+    relates in-skill;
+
+teacher plays teaching-effectiveness:effective-teacher;
+student plays teaching-effectiveness:benefiting-student;
+skill plays teaching-effectiveness:in-skill;
+
+
+# ============================================================================
+# ENHANCED INFERENCE RULES
+# ============================================================================
+
+# Rule: Student at risk if multiple absences
+rule at-risk-attendance:
+    when {
+        $student isa student;
+        $att1 isa attendance, has attendance_status "absent";
+        $att2 isa attendance, has attendance_status "absent";
+        (attendee: $student, record: $att1) isa attendance-record;
+        (attendee: $student, record: $att2) isa attendance-record;
+        $att1 != $att2;
+    } then {
+        $student has risk_level "medium";
+    };
+
+# Rule: High performer if consistent good scores
+rule high-performer:
+    when {
+        $student isa student;
+        $assessment isa assessment, has assessment_result "pass";
+        $assessment has assessment_score $score;
+        (subject: $student, evaluation: $assessment) isa assessment-event;
+    } then {
+        $student has is_active true;
+    };
+
+# Rule: Skill mastery from assessment
+rule infer-skill-mastery:
+    when {
+        $student isa student;
+        $skill isa skill;
+        $level isa competency-level, has proficiency_level "advanced";
+        (learner: $student, target-skill: $skill) isa skill-progress, has progress_percentage $prog;
+        $prog >= 85.0;
+    } then {
+        (learner: $student, mastered-skill: $skill, at-level: $level) isa skill-mastery;
+    };
+
+# Rule: Learning gap detection
+rule detect-learning-gap:
+    when {
+        $student isa student;
+        $skill isa skill;
+        (learner: $student, target-skill: $skill) isa skill-progress, has progress_percentage $prog;
+        $prog < 40.0;
+    } then {
+        (struggling-learner: $student, gap-skill: $skill) isa learning-gap, has risk_level "high";
+    };
+
+# Rule: Teacher effectiveness from student improvement
+rule infer-teaching-effectiveness:
+    when {
+        $teacher isa teacher;
+        $student isa student;
+        $skill isa skill;
+        (instructor: $teacher, learner: $student) isa teaching;
+        (learner: $student, mastered-skill: $skill) isa skill-mastery;
+    } then {
+        (effective-teacher: $teacher, benefiting-student: $student, in-skill: $skill) isa teaching-effectiveness;
+    };
+
+# Rule: Recommend prerequisite skills
+rule recommend-prerequisites:
+    when {
+        $student isa student;
+        $target-skill isa skill;
+        $prereq-skill isa skill;
+        (learner: $student, target-skill: $target-skill) isa skill-progress;
+        (required-skill: $prereq-skill, dependent-skill: $target-skill) isa skill-prerequisite;
+        not { (learner: $student, mastered-skill: $prereq-skill) isa skill-mastery; };
+    } then {
+        (struggling-learner: $student, gap-skill: $prereq-skill) isa learning-gap, has risk_level "medium";
+    };

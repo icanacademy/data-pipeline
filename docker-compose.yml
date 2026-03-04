@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  typedb:
+    image: vaticle/typedb:latest
+    container_name: ican_typedb
+    ports:
+      - "1729:1729"
+    volumes:
+      - typedb_data:/opt/typedb-all-linux-x86_64/server/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1729"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  pipeline:
+    build: .
+    container_name: ican_pipeline
+    ports:
+      - "8080:8080"
+    environment:
+      - TYPEDB_HOST=typedb
+      - TYPEDB_PORT=1729
+      - TYPEDB_DATABASE=ican_knowledge_graph
+      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=scheduling_db
+      - API_HOST=0.0.0.0
+      - API_PORT=8080
+    volumes:
+      # Mount SQLite databases (read-only)
+      - ${HOME}/attendance-checker/attendance.db:/data/attendance.db:ro
+      - ${HOME}/student-attendance-checker/student-attendance.db:/data/student-attendance.db:ro
+      - ${HOME}/academy-coaching-app/coaching.db:/data/coaching.db:ro
+      - ${HOME}/ican-app-marketplace/marketplace.db:/data/marketplace.db:ro
+      - ${HOME}/ican-demo-assessment/demo_assessments.db:/data/demo_assessments.db:ro
+      - ${HOME}/interview-sheet-generator/server/interviews.db:/data/interviews.db:ro
+      - ${HOME}/student-report-app/student_reports.db:/data/student_reports.db:ro
+      - ${HOME}/.n8n/database.sqlite:/data/n8n.db:ro
+    depends_on:
+      - typedb
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  typedb_data:
